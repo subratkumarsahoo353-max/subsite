@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>SubSite - Study Material</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+/* ------------------ GLOBAL ------------------ */
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: rgba(255,255,255,0.65);
+    backdrop-filter: blur(10px);
+    transition: 0.3s;
+}
+
+.dark {
+    background: rgba(0,0,0,0.8);
+    color: white;
+}
+
+/* ------------------ HEADER ------------------ */
+header {
+    padding: 20px;
+    text-align: center;
+    font-size: 28px;
+    font-weight: bold;
+    backdrop-filter: blur(20px);
+}
+
+/* ------------------ THEME SWITCH ------------------ */
+#themeToggle {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    width: 40px;
+    height: 22px;
+    cursor: pointer;
+}
+
+/* ------------------ ADMIN BUTTON ------------------ */
+#adminBtn {
+    display: block;
+    margin: 10px auto;
+    padding: 10px 18px;
+    border: none;
+    background: #0057ff;
+    color: white;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+/* ------------------ LOGIN PANEL ------------------ */
+#loginPanel {
+    display: none;
+    max-width: 350px;
+    margin: 10px auto;
+    padding: 20px;
+    background: rgba(255,255,255,0.35);
+    border-radius: 10px;
+    animation: fade 0.4s ease;
+}
+
+@keyframes fade {
+    from {opacity:0; transform: scale(0.93);}
+    to {opacity:1; transform: scale(1);}
+}
+
+/* ------------------ CONTAINER ------------------ */
+.container {
+    width: 90%;
+    max-width: 900px;
+    margin: 20px auto;
+}
+
+/* ------------------ CATEGORY CARD ------------------ */
+.category {
+    background: rgba(255,255,255,0.45);
+    padding: 15px;
+    margin-top: 12px;
+    border-radius: 10px;
+    backdrop-filter: blur(10px);
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.category:hover {
+    transform: scale(1.01);
+}
+
+/* ------------------ POPUP ------------------ */
+.popup {
+    display: none;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.55);
+}
+
+.popupContent {
+    background: white;
+    color: black;
+    width: 80%;
+    max-width: 500px;
+    margin: 80px auto;
+    padding: 20px;
+    border-radius: 10px;
+}
+
+/* ------------------ FOOTER ------------------ */
+footer {
+    text-align: center;
+    padding: 12px;
+    font-size: 12px;
+    margin-top: 40px;
+}
+
+footer a {
+    color: blue;
+    text-decoration: underline;
+}
+</style>
+</head>
+<body>
+
+<header>SubSite - Study Material Website</header>
+
+<!-- THEME SWITCH -->
+<button id="themeToggle">◐</button>
+
+<!-- ADMIN BUTTON -->
+<button id="adminBtn">Admin</button>
+
+<!-- LOGIN PANEL -->
+<div id="loginPanel">
+    <h3>Admin Login</h3>
+    <input id="adminPass" type="password" placeholder="Enter Password" style="width:100%; padding:8px;">
+    <button onclick="adminLogin()" style="margin-top:10px; width:100%;">Login</button>
+</div>
+
+<div class="container">
+
+    <!-- ADMIN CONTROLS (HIDDEN FOR USERS) -->
+    <div id="adminControls" style="display:none; margin-bottom:20px;">
+
+        <h3>Manage Categories</h3>
+        <input id="newCategory" placeholder="New Category Name" style="padding:6px; width:60%;">
+        <button onclick="addCategory()">Add</button>
+
+        <hr>
+
+        <h3>Upload File</h3>
+        <div id="dropZone" style="padding:20px; border:2px dashed gray; border-radius:10px; text-align:center;">
+            Drag & Drop Files Here
+        </div>
+    </div>
+
+    <!-- CATEGORY LIST -->
+    <div id="categoryList"></div>
+
+</div>
+
+<!-- FILE POPUP -->
+<div id="filePopup" class="popup" onclick="closePopup()">
+    <div class="popupContent" onclick="event.stopPropagation()">
+        <h3>Files</h3>
+        <div id="fileList"></div>
+        <button onclick="closePopup()">Close</button>
+    </div>
+</div>
+
+<footer>
+    Developer: <b>Subrat Kumar Sahoo</b> | 
+    <a href="mailto:subratkumarsahoo353@gmail.com">Email</a> |
+    <a href="https://www.instagram.com/subrat.kumar.sahoo_/" target="_blank">Instagram</a>
+</footer>
+
+<script>
+/* ---------------------------------------------------
+      DATA STORAGE USING LOCALSTORAGE
+--------------------------------------------------- */
+let categories = JSON.parse(localStorage.getItem("categories")) || {};
+
+function saveData() {
+    localStorage.setItem("categories", JSON.stringify(categories));
+}
+
+/* ---------------------------------------------------
+    THEME SWITCH
+--------------------------------------------------- */
+document.getElementById("themeToggle").onclick = () => {
+    document.body.classList.toggle("dark");
+};
+
+/* ---------------------------------------------------
+    ADMIN LOGIN
+--------------------------------------------------- */
+let isAdmin = false;
+
+function adminLogin() {
+    if (document.getElementById("adminPass").value === "ANSU") {
+        isAdmin = true;
+        document.getElementById("adminControls").style.display = "block";
+        document.getElementById("loginPanel").style.display = "none";
+        alert("Admin Logged In");
+        renderCategories();
+    } else {
+        alert("Wrong Password");
+    }
+}
+
+document.getElementById("adminBtn").onclick = () => {
+    let p = document.getElementById("loginPanel");
+    p.style.display = p.style.display === "block" ? "none" : "block";
+};
+
+/* ---------------------------------------------------
+    CATEGORY FUNCTIONS (ONLY ADMIN)
+--------------------------------------------------- */
+function addCategory() {
+    if (!isAdmin) return;
+    let name = document.getElementById("newCategory").value.trim();
+    if (!name) return;
+    categories[name] = { files: [] };
+    saveData();
+    renderCategories();
+}
+
+function deleteCategory(name) {
+    if (!isAdmin) return;
+    delete categories[name];
+    saveData();
+    renderCategories();
+}
+
+function renameCategory(oldName) {
+    if (!isAdmin) return;
+    let newName = prompt("Rename to:", oldName);
+    if (!newName) return;
+    categories[newName] = categories[oldName];
+    delete categories[oldName];
+    saveData();
+    renderCategories();
+}
+
+/* ---------------------------------------------------
+    FILE POPUP
+--------------------------------------------------- */
+function openFiles(cat) {
+    let files = categories[cat].files || [];
+    let list = document.getElementById("fileList");
+
+    list.innerHTML = "";
+
+    files.forEach((f, i) => {
+        list.innerHTML += `
+            <div>
+                <a href="${f.url}" download>${f.name}</a>
+                ${isAdmin ? `<button onclick="deleteFile('${cat}', ${i})">Delete</button>` : ""}
+            </div>
+        `;
+    });
+
+    document.getElementById("filePopup").style.display = "block";
+}
+
+function closePopup() {
+    document.getElementById("filePopup").style.display = "none";
+}
+
+function deleteFile(cat, index) {
+    if (!isAdmin) return;
+    categories[cat].files.splice(index, 1);
+    saveData();
+    openFiles(cat);
+}
+
+/* ---------------------------------------------------
+    DRAG & DROP UPLOAD (ONLY ADMIN)
+--------------------------------------------------- */
+let dropZone = document.getElementById("dropZone");
+
+dropZone.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    dropZone.style.background = "#e0e0e0";
+});
+
+dropZone.addEventListener("dragleave", () => {
+    dropZone.style.background = "";
+});
+
+dropZone.addEventListener("drop", (e) => {
+    e.preventDefault();
+    if (!isAdmin) return alert("Only admin can upload");
+
+    dropZone.style.background = "";
+
+    let file = e.dataTransfer.files[0];
+    if (!file) return;
+
+    let url = URL.createObjectURL(file);
+
+    let cat = prompt("Upload into which category?");
+    if (!cat || !categories[cat]) return alert("Category not found!");
+
+    categories[cat].files.push({ name: file.name, url });
+    saveData();
+    renderCategories();
+});
+
+/* ---------------------------------------------------
+    RENDER CATEGORIES
+--------------------------------------------------- */
+function renderCategories() {
+    let wrap = document.getElementById("categoryList");
+    wrap.innerHTML = "";
+
+    for (let cat in categories) {
+        wrap.innerHTML += `
+            <div class="category">
+                <b onclick="openFiles('${cat}')">${cat}</b><br>
+                ${isAdmin ? `
+                    <button onclick="renameCategory('${cat}')">Rename</button>
+                    <button onclick="deleteCategory('${cat}')">Delete</button>
+                ` : ""}
+            </div>
+        `;
+    }
+}
+
+renderCategories();
+
+</script>
+
+</body>
+</html>
